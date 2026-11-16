@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <title>Tradutor</title>
+        <meta charset="utf-8" >
+        <style>
+            main {
+                font-family: monospace;
+                font-size: 18px;
+                text-align: center;
+                background-color: rgb(250, 250, 250);
+            }
+
+            h1 {
+                background-color: lightgray;
+            }
+
+            form {
+                border-style: solid;
+            }
+
+            input {
+                margin: 10px 10px 10px 10px;
+                font-size: 18px;
+            }
+
+            button {
+                margin: 10px 10px 10px 10px;
+                padding: 10px 10px 10px 10px;
+                font-size: 18px;
+            }
+
+            #result-div {
+                font-size: 24px;
+            }
+
+            #result {
+                font-weight: bold;
+            }
+
+            .code-block {
+                background-color: rgba(255, 255, 0, 0.05);
+            }
+
+        </style>
+    </head>
+    <body>
+        <main>
+        <h1>Tradutor</h1>
+        <form>
+            <label for="input_field">Frase original (português):</label>
+            <input type="text" id="input_field" name="input_field">
+            <br/>
+
+            <input type="radio" id="target_en" name="target" value="en" >
+            <label for="target_en">inglês</label>
+
+            <input type="radio" id="target_es" name="target" value="es">
+            <label for="target_es">espanhol</label>
+            
+            <input type="radio" id="target_ja" name="target" value="ja">
+            <label for="target_ja">japonês</label>
+
+            <br/>
+
+            <button id="submit_button" type="button">Enviar</button>
+            <button type="reset">Limpar</button>
+        
+        </form>
+        <br>
+        <div>
+            <span>Frase traduzida: </span>"<span id="translation"></span>"
+        </div>
+        <br>
+        </main>
+
+        <br>
+        <details>
+            <summary>Detalhes de API</summary>
+            <p>
+                Essa simples demonstração de tradução utiliza a API pública e gratuita do 
+                <a target="_blank" href="https://mymemory.translated.net/">MyMemory</a>. 
+                A API utiliza modelo REST e está documentada <a target="_blank" href="https://mymemory.translated.net/doc/spec.php">nesta página</a>
+            </p>
+
+            <p>
+                Pela sua simplicidade, não há envio de objetos JSON; em vez disso, são utilizados parâmetros de requisição HTTP.
+                Abaixo estão a URL utilizada e a resposta JSON recebida pelo servidor, na última operação de tradução.
+            </p>
+
+            <h3>URL</h3>
+            <div class="code-block">
+            <code id="show_url">
+                SEM DADOS
+            </code>
+            </div>
+            <h3>JSON (RESPOSTA)</h3>
+            <div class="code-block">
+            <code id="show_response">
+                SEM DADOS
+            </code>
+            </div>
+
+        </details>
+
+        <br>
+        <a href="soap.html">Exemplo SOAP</a>
+
+    </body>
+    <script>
+
+        const MAX_LENGTH = 100;
+        const API = "https://api.mymemory.translated.net/get?"
+
+        async function getResponse(url) {
+            r = {
+                responseData: {
+                    translatedText: "< Falha na solicitação >",
+                }
+            };
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    r = (await response.json());
+                }
+            } catch (err) {}
+            return r;
+        }
+
+        async function processForm() {
+
+            const translation = document.getElementById("translation");
+            const showURL = document.getElementById("show_url");
+            const showResponse = document.getElementById("show_response");
+            const button = document.getElementById("submit_button");
+
+            button.disabled = true;
+            translation.innerText = "< Aguarde... >";
+
+            showResponse.innerText = "PENDENTE";
+            showURL.innerText = "PENDENTE";
+            
+            const target_ = document.querySelector('input[name="target"]:checked');
+            if (target_ == null) {
+                alert("Selecione uma língua alvo de tradução primeiro!");
+                return;
+            }
+            
+            const text = String(document.getElementById("input_field").value);
+            const target = String(target_.value);
+
+            if (text.length >= MAX_LENGTH) {
+                alert("A entrada é grande demais!");
+                return;
+            }
+
+            const params = new URLSearchParams({
+                q: text,
+                langpair: "pt|".concat(target),
+            });
+
+            const url = new URL(API.concat(params.toString()));
+            
+            showURL.innerText = url.toString();
+
+            const response = await getResponse(url);
+            translation.innerText = response.responseData.translatedText;
+            button.disabled = false;
+            showResponse.innerText = JSON.stringify(response, null, 4);
+
+        }
+
+        document.getElementById("submit_button").addEventListener("click", processForm);
+
+    </script>
+</html>

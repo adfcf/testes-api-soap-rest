@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <title>Calculadora</title>
+        <meta charset="utf-8" >
+        <style>
+            main {
+                font-family: monospace;
+                font-size: 18px;
+                text-align: center;
+                background-color: rgb(250, 250, 250);
+            }
+
+            h1 {
+                background-color: lightgray;
+            }
+
+            form {
+                border-style: solid;
+            }
+
+            input {
+                margin: 10px 10px 10px 10px;
+                font-size: 18px;
+            }
+
+            button {
+                margin: 10px 10px 10px 10px;
+                padding: 10px 10px 10px 10px;
+                font-size: 18px;
+            }
+
+            #result-div {
+                font-size: 24px;
+            }
+
+            #result {
+                font-weight: bold;
+            }
+
+            .code-block {
+                background-color: rgba(255, 255, 0, 0.05);
+            }
+
+        </style>
+    </head>
+    <body>
+        <main>
+        <h1>Calculadora</h1>
+        <form>
+            <label for="input_field">X:</label>
+            <input type="text" id="x" name="x">
+            <br/>
+
+            <label for="input_field">Y:</label>
+            <input type="text" id="y" name="y">
+            <br/>
+
+            <input type="radio" id="target_add" name="target" value="Add" >
+            <label for="target_add">Soma</label>
+
+            <input type="radio" id="target_subtract" name="target" value="Subtract">
+            <label for="target_subtract">Subtração</label>
+            
+            <input type="radio" id="target_multiply" name="target" value="Multiply">
+            <label for="target_multiply">Multiplicação</label>
+
+            <input type="radio" id="target_divide" name="target" value="Divide">
+            <label for="target_divide">Divisão</label>
+
+            <br/>
+
+            <button id="submit_button" type="button">Enviar</button>
+            <button type="reset">Limpar</button>
+        
+        </form>
+        
+        <br/>
+        <div id="result-div">
+            <span>Resultado: </span><span id="result"></span>
+        </div>
+        <br/>
+        </main>
+        <br/>
+
+        <details>
+            <summary>Detalhes de API</summary>
+
+            <p>
+                Essa simples demonstração de cálculo utiliza a API pública e gratuita do 
+                <a target="_blank" href="https://testingapis.com">TestingAPIs</a>. 
+                A API utiliza modelo SOAP e está documentada <a target="_blank" href="https://testingapis.com/docs/soap/">nesta página</a>.
+            </p>
+
+            <p>
+                De certa forma, o modelo SOAP é mais "burocrático" que o REST; as operações disponíveis precisam estar precisamente especificadas
+                em WSDL, e tanto as requisições tanto as respostas precisam seguir esse formato de acordo com a especificação. Em comparação, essa
+                implementação precisou de mais preparo para se comunicar com a API SOAP.
+            </p>
+
+            <h3>URL</h3>
+            <div class="code-block">
+            <code id="show_url">
+                SEM DADOS
+            </code>
+            </div>
+
+            <h3>WSDL</h3>
+            <div class="code-block">
+            <code id="show_wsdl">
+                SEM DADOS
+            </code>
+            </div>
+
+            <h3>XML (REQUISIÇÃO)</h3>
+            <div class="code-block">
+            <code id="show_request">
+                SEM DADOS
+            </code>
+            </div>
+
+            <h3>XML (RESPOSTA)</h3>
+            <div class="code-block">
+            <code id="show_response">
+                SEM DADOS
+            </code>
+            </div>
+
+        </details>
+
+        <br>
+        <a href="rest.html">Exemplo REST</a>
+
+    </body>
+    <script>
+
+        let retrieved_wsdl = false;
+
+        const API = "https://api.testingapis.com/api/soap/calculator";
+
+        async function getWSDL() {
+            const WSDL_LOCATION = "https://api.testingapis.com/api/soap/calculator?wsdl";
+            const r = await fetch(WSDL_LOCATION);
+            if (r.ok) {
+                return (await r.text());
+            }
+            return "Falha ao obter WSDL. Por favor, atualize a página.";
+        }
+
+        function createRequest(op, a, b) {
+
+            const ACTION_URL = "http://tempuri.org/"
+            const FORMAT = "http://schemas.xmlsoap.org/soap/envelope/";
+
+            return {
+                method: "POST",
+                headers: {
+                    "SOAPAction": `"${ACTION_URL}${op}"`,
+                    "Content-Type": "text/xml; charset=utf-8",
+                },
+                body: `
+                    <soap:Envelope xmlns:soap="${FORMAT}">
+                        <soap:Body>
+                            <${op} xmlns="${ACTION_URL}">
+                                <intA>${a}</intA>
+                                <intB>${b}</intB>
+                            </${op}>
+                        </soap:Body>
+                    </soap:Envelope>
+                `,         
+            };
+
+        }
+
+        async function getResponse(request) {
+
+            const response = await fetch(API, request);
+
+            if (response.ok) {
+                return await response.text();
+            }
+
+            return null;
+
+        }
+
+        async function processForm() {
+
+            const result = document.getElementById("result");
+            const showURL = document.getElementById("show_url");
+            const showRequest = document.getElementById("show_request");
+            const showResponse = document.getElementById("show_response");
+            const showWSDL = document.getElementById("show_wsdl");
+            const button = document.getElementById("submit_button");
+
+            if (!retrieved_wsdl) {
+                showWSDL.innerText = (await getWSDL());
+                retrieved_wsdl = true;
+            }
+
+            button.disabled = true;
+            result.innerText = "< Aguarde... >";
+
+            showResponse.innerText = "PENDENTE";
+            showRequest.innerText = "PENDENTE";
+            showURL.innerText = "PENDENTE";
+            
+            const target_ = document.querySelector('input[name="target"]:checked');
+            if (target_ == null) {
+                alert("Selecione uma operação aritmética primeiro!");
+                return;
+            }
+            
+            const a = Number.parseInt(String(document.getElementById("x").value));
+            const b = Number.parseInt(String(document.getElementById("y").value));
+
+            if (isNaN(a) || isNaN(b)) {
+                alert("Coloque números válidos nos campos, por favor.");
+                return;
+            }
+
+            const target = String(target_.value);
+
+            const request = createRequest(target, a, b);
+            showRequest.innerText = `{ 
+                method: "${request.method}", 
+                headers: {
+                    "SOAPAction": ${request.headers["SOAPAction"]},
+                    "Content-Type": "${request.headers["Content-Type"]}",
+                }, 
+                body: ${request.body} 
+            }`;
+            showURL.innerText = API;
+
+            let response = await getResponse(request);
+            if (response != null) {
+                showResponse.innerText = response;
+                const doc = new DOMParser().parseFromString(response, "text/xml");
+                result.innerText = doc.querySelector(`${target}Result`).textContent;
+            } else {
+                result.innerText = "<ERRO>";
+            }
+
+            button.disabled = false;
+
+        }
+
+        document.getElementById("submit_button").addEventListener("click", processForm);
+
+    </script>
+</html>
